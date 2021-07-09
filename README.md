@@ -149,3 +149,64 @@ The following is the request flow (seen in blue in the architecture diagram abov
     ```
 
 1. You can see the pods with `kubectl get pods.`
+
+## Uninstalling the component
+1. Remove the demo application
+    ```
+    kubectl delete -f test/app/service.yml
+    ```
+    You can verify deletion by checking the output of:
+    ```
+    kubectl get all --namespace=default | grep helloworld-sleep
+    ```
+1. If you previously set every service to respond to the `Prefer: respond-async` header, remember to remove this setting by updating `ingress.class` to null, the previous value, or by updating `ingress.class` to the `ingress.class` you would like to use, for example `kourier`.
+    ```
+    kubectl patch configmap/config-network \
+    -n knative-serving --type merge \
+    -p '{"data":{"ingress.class":null}}'
+    ```
+
+    ```
+    kubectl patch configmap/config-network \
+    -n knative-serving \
+    --type merge \
+    -p '{"data":{"ingress.class":"kourier.ingress.networking.knative.dev"}}'
+    ```
+1. Remove the producer component
+    ```
+    ko delete -f config/async/100-async-producer.yaml
+    ```
+    You can verify the deletion by checking the output of:
+    ```
+    kubectl get all --namespace=knative-serving | grep async-producer
+    ```
+1. Remove the `RedisStreamSource` and tls secret
+    ```
+    kubectl delete -f config/async/100-async-redis-source.yaml
+    kubectl delete -f config/async/tls-secret.yaml
+    ```
+    You can verify deletion by checking the output of:
+    ```
+    kubectl get all --namespace=knative-serving | grep redis
+    kubectl get secrets --namespace=knative-serving | grep tls
+    ```
+1. Remove the eventing-redis component - make sure you are using this command in the `eventing-redis` project
+    ```
+    ko delete -f source/config
+    ```
+    You can verify the deletion by checking the output of:
+    ```
+    kubectl get all --all-namespaces | grep redis
+    ```
+1. Remove the consumer and async controller components - back in the async component project.
+    ```
+    ko delete -f config/ingress/controller.yaml
+    ko delete -f config/async/100-async-consumer.yaml
+    ```
+    You can verify deletion by checking the output of:
+    ```
+    kubectl get all --namespace=knative-serving | grep async-controller
+    kubectl get all --namespace=knative-serving | grep async-consumer
+    ```
+
+
